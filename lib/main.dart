@@ -12,8 +12,8 @@ void main() async {
   
   // GANTI URL DAN KEY ANDA DI SINI
   await Supabase.initialize(
-    url: 'https://udxvdovqkwyjxneujrqw.supabase.co/rest/v1/',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkeHZkb3Zxa3d5anhuZXVqcnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NjkxNjgsImV4cCI6MjEwODQ0NTE2OH0.t-pZ5uBiTc6wDL1UrrkUn4oVdsIFw0OmNxXjHdoBP7s',
+    url: 'https://udxvdovqkwyjxneujrqw.supabase.co',
+    publishableKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkeHZkb3Zxa3d5anhuZXVqcnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NjkxNjgsImV4cCI6MjEwODQ0NTE2OH0.t-pZ5uBiTc6wDL1UrrkUn4oVdsIFw0OmNxXjHdoBP7s',
   );
 
   runApp(
@@ -65,9 +65,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
+          bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) {
           setState(() {
             _currentIndex = index;
           });
+          
+          // TAMBAHKAN KODE INI:
+          // Jika user pindah ke tab Favorit (index 2), panggil ulang datanya
+          if (index == 2) {
+            context.read<RecipeProvider>().fetchSavedRecipes();
+          }
+        
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
