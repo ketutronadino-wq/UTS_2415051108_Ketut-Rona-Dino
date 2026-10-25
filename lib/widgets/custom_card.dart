@@ -20,6 +20,7 @@ class CustomCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
       child: ListTile(
+        // Menggunakan leading dari API (gambar), jika null pakai icon default
         leading: leading ?? const Icon(Icons.fastfood, size: 40, color: Colors.orange),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitle),

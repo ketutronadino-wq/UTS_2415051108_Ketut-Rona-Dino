@@ -4,6 +4,7 @@ import '../providers/recipe_provider.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/empty_state.dart';
 import 'recipe_detail_screen.dart';
+import '../models/recipe_model.dart';
 
 class RecipeListScreen extends StatefulWidget {
   const RecipeListScreen({super.key});
@@ -105,11 +106,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   }
 
   // Passing data objek utuh ke Detail
-  void _goToDetail(BuildContext context, dynamic recipe) {
+    void _goToDetail(BuildContext context, RecipeModel recipe) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => RecipeDetailScreen(recipeTitle: recipe.name),
+        builder: (context) => RecipeDetailScreen(recipe: recipe),
       ),
     );
   }

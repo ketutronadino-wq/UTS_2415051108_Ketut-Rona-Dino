@@ -9,7 +9,7 @@ class RecipeProvider extends ChangeNotifier {
   bool _isLoading = false;
   List<RecipeModel> _recipes = [];
   String _errorMessage = '';
-  List<RecipeModel> _savedRecipes = []; // Shared state untuk favorit (nanti dihubungkan ke DB)
+  final List<RecipeModel> _savedRecipes = [];
 
   // Getter
   bool get isLoading => _isLoading;
