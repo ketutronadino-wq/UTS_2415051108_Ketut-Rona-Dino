@@ -10,7 +10,7 @@ import 'screens/profile_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // GANTI URL DAN KEY ANDA DI SINI
+  // Inisialisasi Supabase
   await Supabase.initialize(
     url: 'https://udxvdovqkwyjxneujrqw.supabase.co',
     publishableKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkeHZkb3Zxa3d5anhuZXVqcnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NjkxNjgsImV4cCI6MjEwODQ0NTE2OH0.t-pZ5uBiTc6wDL1UrrkUn4oVdsIFw0OmNxXjHdoBP7s',
@@ -62,22 +62,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
+      // Perhatikan struktur NavigationBar di bawah ini, sudah rapi.
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
           setState(() {
             _currentIndex = index;
           });
           
-          // TAMBAHKAN KODE INI:
           // Jika user pindah ke tab Favorit (index 2), panggil ulang datanya
           if (index == 2) {
             context.read<RecipeProvider>().fetchSavedRecipes();
           }
-        
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
