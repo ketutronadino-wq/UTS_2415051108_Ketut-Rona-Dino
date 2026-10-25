@@ -8,23 +8,40 @@ class RecipeProvider extends ChangeNotifier {
   final RecipeRepository _repository = RecipeRepository();
   final SupabaseService _supabaseService = SupabaseService();
 
-  // State
+  // State REST API
   bool _isLoading = false;
   List<RecipeModel> _recipes = [];
   String _errorMessage = '';
-  final List<RecipeModel> _savedRecipes = [];
 
-List<SavedRecipeModel> _savedRecipes = [];
+  // State Database (CRUD)
+  List<SavedRecipeModel> _savedRecipes = [];
   bool _isDbLoading = false;
 
   // Getter
-   bool get isLoading => _isLoading;
+  bool get isLoading => _isLoading;
   List<RecipeModel> get recipes => _recipes;
   String get errorMessage => _errorMessage;
   List<SavedRecipeModel> get savedRecipes => _savedRecipes;
   bool get isDbLoading => _isDbLoading;
 
-  // Fungsi untuk mengambil data dari API
+  // --- FUNGSI REST API ---
+  Future<void> fetchRecipes() async {
+    _isLoading = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      _recipes = await _repository.getRecipes();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+    }
+  }
+
+  // --- FUNGSI DATABASE (CRUD) ---
   Future<void> fetchSavedRecipes() async {
     _isDbLoading = true;
     notifyListeners();
@@ -44,7 +61,7 @@ List<SavedRecipeModel> _savedRecipes = [];
         title: recipe.name,
         category: recipe.category,
       );
-      await fetchSavedRecipes(); // Refresh list setelah simpan
+      await fetchSavedRecipes();
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -75,16 +92,5 @@ List<SavedRecipeModel> _savedRecipes = [];
       notifyListeners();
       return false;
     }
-  }
-}
-
-  // Fungsi sementara untuk Shared State Favorite (Akan dimodifikasi di Hari 8-10)
-  void toggleFavorite(RecipeModel recipe) {
-    if (_savedRecipes.contains(recipe)) {
-      _savedRecipes.remove(recipe);
-    } else {
-      _savedRecipes.add(recipe);
-    }
-    notifyListeners();
   }
 }

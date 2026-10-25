@@ -9,13 +9,13 @@ import 'screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-await Supabase.initialize(
+  
+  // GANTI URL DAN KEY ANDA DI SINI
+  await Supabase.initialize(
     url: 'https://udxvdovqkwyjxneujrqw.supabase.co/rest/v1/',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkeHZkb3Zxa3d5anhuZXVqcnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NjkxNjgsImV4cCI6MjEwODQ0NTE2OH0.t-pZ5uBiTc6wDL1UrrkUn4oVdsIFw0OmNxXjHdoBP7s',
   );
 
-void main() {
   runApp(
     ChangeNotifierProvider(
       create: (context) => RecipeProvider(),
