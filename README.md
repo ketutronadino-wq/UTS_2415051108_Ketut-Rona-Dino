@@ -1,17 +1,41 @@
-# uts_recipebox
+# UTS Pemrograman Mobile - RecipeBox
 
-A new Flutter project.
+## Deskripsi Project
+RecipeBox adalah aplikasi mobile berbasis Flutter yang dirancang untuk mencari resep makanan dari seluruh dunia. Aplikasi ini mengintegrasikan REST API untuk mengambil katalog resep dan menggunakan database backend untuk menyimpan resep favorit beserta catatan dan rating pribadi pengguna.
 
-## Getting Started
+## Identitas Mahasiswa
+*   **Nama:** Ketut Rona Dino
+*   **NIM:** 241051108
+*   **Kelas:** Pemrograman Berbasis Mobile
+*   **Tema Project:** Food & Recipe Explorer
 
-This project is a starting point for a Flutter application.
+## Fitur Utama
+1.  **Home Dashboard:** Menampilkan sambutan dan navigasi cepat ke daftar resep.
+2.  **Explore Recipes (REST API):** Menampilkan daftar resep dari API (TheMealDB) dengan layout responsif (List/Grid) dan fitur pencarian (Search).
+3.  **Recipe Detail:** Menampilkan detail instruksi memasak dan gambar dari API. Terdapat passing data antar screen.
+4.  **Saved Favorites (Database CRUD):** Menyimpan resep ke database Supabase. Pengguna dapat melihat daftar favorit, mengedit catatan (Update), dan menghapusnya (Delete dengan konfirmasi dialog).
+5.  **Profile:** Menampilkan informasi pengembang aplikasi.
 
-A few resources to get you started if this is your first Flutter project:
+## Tech Stack & Arsitektur
+*   **Framework:** Flutter (Dart)
+*   **State Management:** Provider + ChangeNotifier
+*   **HTTP Client:** `http` package
+*   **Database Client:** `supabase_flutter`
+*   **Arsitektur:** 
+    `UI (Screens/Widgets)` → `State (Providers)` → `Repository` → `Service (API/Supabase)`
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## REST API & Database
+*   **REST API:** [TheMealDB API](https://www.themealdb.com/api.php) (Endpoint: `search.php?s=a`)
+*   **Backend/Database:** [Supabase](https://supabase.com/)
+*   **Tabel Database:** `saved_recipes` (Field: `id`, `recipe_id`, `title`, `category`, `note`, `rating`, `created_at`)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Struktur Folder
+```text
+lib/
+ ┣ models/       # Model data (RecipeModel, SavedRecipeModel)
+ ┣ services/     # Koneksi ke API dan Supabase
+ ┣ repositories/ # Jembatan antara Provider dan Service
+ ┣ providers/    # State Management (RecipeProvider)
+ ┣ screens/      # Halaman UI (Home, List, Detail, Favorit, Edit, Profil)
+ ┣ widgets/      # Komponen UI yang dapat digunakan ulang (CustomCard, EmptyState, dll)
+ ┗ main.dart     # Entry point aplikasi

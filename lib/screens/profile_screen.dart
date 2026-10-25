@@ -53,12 +53,19 @@ class ProfileScreen extends StatelessWidget {
                       Divider(),
                       SizedBox(height: 8),
                       Row(
-                        children: [
-                          Icon(Icons.code, color: Colors.orange),
-                          SizedBox(width: 8),
-                          Text('Dibuat untuk Project UTS Pemrograman Mobile'),
-                        ],
-                      )
+  children: [
+    Icon(Icons.code, color: Colors.orange),
+    const SizedBox(width: 8),
+    // BUNGKUS DENGAN EXPANDED
+    const Expanded( 
+      child: Text(
+        'Dibuat untuk Project UTS Pemrograman Mobile',
+        // Tambahkan softWrap agar teks turun ke bawah jika tidak muat
+        softWrap: true, 
+      ),
+    ),
+  ],
+)
                     ],
                   ),
                 ),
