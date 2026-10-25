@@ -13,10 +13,11 @@ class RecipeListScreen extends StatefulWidget {
 }
 
 class _RecipeListScreenState extends State<RecipeListScreen> {
+  String _searchQuery = ''; // State untuk menyimpan kata kunci pencarian
+
   @override
   void initState() {
     super.initState();
-    // Panggil API saat screen pertama kali dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RecipeProvider>().fetchRecipes();
     });
@@ -26,16 +27,45 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<RecipeProvider>(context);
 
+    // Filter data berdasarkan pencarian
+    final filteredRecipes = provider.recipes.where((recipe) {
+      return recipe.name.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Semua Resep')),
+      appBar: AppBar(
+        title: const Text('Semua Resep'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60.0),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Cari resep...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
+          ),
+        ),
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // 1. Cek Loading State
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // 2. Cek Error State
           if (provider.errorMessage.isNotEmpty) {
             return Center(
               child: Column(
@@ -54,17 +84,18 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
             );
           }
 
-          // 3. Cek Empty State
-          if (provider.recipes.isEmpty) {
-            return const EmptyState(
-              message: 'Tidak ada resep ditemukan.',
+          // Jika hasil filter kosong (Empty State)
+          if (filteredRecipes.isEmpty) {
+            return EmptyState(
+              message: _searchQuery.isEmpty 
+                  ? 'Tidak ada resep ditemukan.' 
+                  : 'Resep "$_searchQuery" tidak ditemukan.',
               icon: Icons.search_off,
             );
           }
 
-          // 4. Tampilkan Data
+          // Tampilkan Data (Responsive)
           if (constraints.maxWidth > 600) {
-            // GridView (Tablet/Landscape)
             return GridView.builder(
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -73,9 +104,9 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
               ),
-              itemCount: provider.recipes.length,
+              itemCount: filteredRecipes.length,
               itemBuilder: (context, index) {
-                final recipe = provider.recipes[index];
+                final recipe = filteredRecipes[index];
                 return CustomCard(
                   title: recipe.name,
                   subtitle: recipe.category,
@@ -85,11 +116,10 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
               },
             );
           } else {
-            // ListView (HP)
             return ListView.builder(
-              itemCount: provider.recipes.length,
+              itemCount: filteredRecipes.length,
               itemBuilder: (context, index) {
-                final recipe = provider.recipes[index];
+                final recipe = filteredRecipes[index];
                 return CustomCard(
                   title: recipe.name,
                   subtitle: recipe.category,
@@ -104,7 +134,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     );
   }
 
-  // Passing data objek utuh ke Detail
   void _goToDetail(BuildContext context, dynamic recipe) {
     Navigator.push(
       context,
