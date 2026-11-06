@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/recipe_model.dart';
 import '../providers/recipe_provider.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
+import '../widgets/recipe_image.dart';
 import 'recipe_detail_screen.dart';
 
 class RecipeListScreen extends StatefulWidget {
@@ -13,133 +16,188 @@ class RecipeListScreen extends StatefulWidget {
 }
 
 class _RecipeListScreenState extends State<RecipeListScreen> {
-  String _searchQuery = ''; // State untuk menyimpan kata kunci pencarian
+  late final RecipeProvider _provider;
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RecipeProvider>().fetchRecipes();
-    });
+    _provider = context.read<RecipeProvider>();
+    _searchController = TextEditingController(text: _provider.searchQuery);
+    // Sinkronkan teks kolom cari jika filter diubah dari screen lain (Home)
+    _provider.addListener(_syncSearchText);
+  }
+
+  void _syncSearchText() {
+    if (_searchController.text != _provider.searchQuery) {
+      _searchController.text = _provider.searchQuery;
+    }
+  }
+
+  @override
+  void dispose() {
+    _provider.removeListener(_syncSearchText);
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<RecipeProvider>(context);
-
-    // Filter data berdasarkan pencarian
-    final filteredRecipes = provider.recipes.where((recipe) {
-      return recipe.name.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
+    final provider = context.watch<RecipeProvider>();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Semua Resep'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60.0),
+          preferredSize: const Size.fromHeight(64),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: TextField(
+              controller: _searchController,
+              onChanged: provider.setSearchQuery,
               decoration: InputDecoration(
                 hintText: 'Cari resep...',
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: provider.searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => provider.setSearchQuery(''),
+                      ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
             ),
           ),
         ),
       ),
-      body: LayoutBuilder(
+      body: Column(
+        children: [
+          if (provider.categories.isNotEmpty) _buildCategoryFilter(provider),
+          Expanded(child: _buildContent(provider)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilter(RecipeProvider provider) {
+    return SizedBox(
+      height: 56,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: const Text('Semua'),
+              selected: provider.selectedCategory == null,
+              onSelected: (_) => provider.setCategory(null),
+            ),
+          ),
+          ...provider.categories.map(
+            (category) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(category),
+                selected: provider.selectedCategory == category,
+                onSelected: (_) => provider.setCategory(category),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(RecipeProvider provider) {
+    // 1. Loading state
+    if (provider.isLoading && provider.recipes.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // 2. Error state
+    if (provider.apiError.isNotEmpty && provider.recipes.isEmpty) {
+      return ErrorState(
+        message: provider.apiError,
+        onRetry: () => provider.fetchRecipes(force: true),
+      );
+    }
+
+    // 3. Empty state
+    final recipes = provider.filteredRecipes;
+    if (recipes.isEmpty) {
+      return EmptyState(
+        message: provider.hasActiveFilter
+            ? 'Resep tidak ditemukan dengan filter saat ini.'
+            : 'Tidak ada resep ditemukan.',
+        icon: Icons.search_off,
+        actionLabel: provider.hasActiveFilter ? 'Reset Filter' : null,
+        onAction: provider.hasActiveFilter ? provider.clearFilters : null,
+      );
+    }
+
+    // 4. Data (responsive: compact = list, wide = grid)
+    return RefreshIndicator(
+      onRefresh: () => _refresh(provider),
+      child: LayoutBuilder(
         builder: (context, constraints) {
-          if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (provider.errorMessage.isNotEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 60),
-                  const SizedBox(height: 10),
-                  Text(provider.errorMessage, textAlign: TextAlign.center),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: () => provider.fetchRecipes(),
-                    child: const Text('Coba Lagi'),
-                  )
-                ],
-              ),
-            );
-          }
-
-          // Jika hasil filter kosong (Empty State)
-          if (filteredRecipes.isEmpty) {
-            return EmptyState(
-              message: _searchQuery.isEmpty 
-                  ? 'Tidak ada resep ditemukan.' 
-                  : 'Resep "$_searchQuery" tidak ditemukan.',
-              icon: Icons.search_off,
-            );
-          }
-
-          // Tampilkan Data (Responsive)
-          if (constraints.maxWidth > 600) {
+          if (constraints.maxWidth >= 600) {
             return GridView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 2.5,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 450,
+                mainAxisExtent: 92,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
               ),
-              itemCount: filteredRecipes.length,
-              itemBuilder: (context, index) {
-                final recipe = filteredRecipes[index];
-                return CustomCard(
-                  title: recipe.name,
-                  subtitle: recipe.category,
-                  leading: Image.network(recipe.thumbnail, width: 50, height: 50, fit: BoxFit.cover),
-                  onTap: () => _goToDetail(context, recipe),
-                );
-              },
-            );
-          } else {
-            return ListView.builder(
-              itemCount: filteredRecipes.length,
-              itemBuilder: (context, index) {
-                final recipe = filteredRecipes[index];
-                return CustomCard(
-                  title: recipe.name,
-                  subtitle: recipe.category,
-                  leading: Image.network(recipe.thumbnail, width: 50, height: 50, fit: BoxFit.cover),
-                  onTap: () => _goToDetail(context, recipe),
-                );
-              },
+              itemCount: recipes.length,
+              itemBuilder: (context, index) =>
+                  _buildCard(recipes[index], inGrid: true),
             );
           }
+
+          return ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 16),
+            itemCount: recipes.length,
+            itemBuilder: (context, index) => _buildCard(recipes[index]),
+          );
         },
       ),
     );
   }
 
-  void _goToDetail(BuildContext context, dynamic recipe) {
+  Widget _buildCard(RecipeModel recipe, {bool inGrid = false}) {
+    return CustomCard(
+      title: recipe.name,
+      subtitle: '${recipe.category} • ${recipe.area}',
+      margin: inGrid
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: RecipeImage(url: recipe.thumbnail, width: 50, height: 50),
+      onTap: () => _goToDetail(recipe),
+    );
+  }
+
+  Future<void> _refresh(RecipeProvider provider) async {
+    await provider.fetchRecipes(force: true);
+    if (!mounted || provider.apiError.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(provider.apiError), backgroundColor: Colors.red),
+    );
+  }
+
+  void _goToDetail(RecipeModel recipe) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => RecipeDetailScreen(recipe: recipe),
-      ),
+      MaterialPageRoute(builder: (_) => RecipeDetailScreen(recipe: recipe)),
     );
   }
 }
