@@ -1,0 +1,41 @@
+2338d5d final: complete all features and fix bugs for submission
+82d513e fix: resolve RangeError when parsing short user id in admin screen
+677bdea feat: integrate community recipes into profile and recipe list UI
+3627a87 chore: register local recipe provider and update validators
+7bde783 feat: add UI form for admin to create community recipes
+56ab5e4 feat: add local recipe provider for state management
+5f6f746 feat: add local recipe model and service
+9c23f29 fix: align repository method signatures with service
+c912ed7 fix: resolve firebase dependencies and clean up imports
+80560b0 docs: update README for worksheet 9
+7fc358a chore: configure firebase cloud messaging
+6dd602a security: configure RLS and database for auth
+4d291a6 feat: implement login, register, admin, and responsive UI
+1a52cec feat: add repositories and providers for auth, admin, and notifications
+7dcc3a3 feat: add authentication, profile, and notification services
+67edb70 feat: add user profile model and validators
+7db306d Update README with complete project documentation
+d60df36 Fix RenderFlex overflow on profile screen
+59e205f Refine Home screen UI and add navigation shortcut
+c3a0afa Enhance profile screen UI with application info card
+a5f978f Add search feature and enhance empty state in recipe list
+5113042 Integrate Supabase database, implement CRUD features, and fix navigation refresh
+dc91edf Fix NavigationBar syntax and implement auto-refresh on favorite tab
+61e5a01 Fix favorite screen refresh and clean up warnings
+c57dd30 Fix provider conflicts and clean up imports
+15e1a12 Implement database state management in Provider
+9608309 Implement Supabase CRUD service and SavedRecipe model
+8f3c45f Integrate Supabase backend database configuration
+a455b5c Fix missing dependencies and refactor recipe detail passing data
+c1c8702 Integrate REST API and display data with loading/error state
+09118d7 Implement application state management with Provider
+a514400 Implement API Service and Repository for REST API
+ea403cb Add application data models
+ab7af8a Add application navigation with BottomNavigationBar
+4d4c68d Build Detail, Saved, and Edit screens UI
+4b8a0c7 Implement responsive layouts (List and Grid) for RecipeListScreen
+77b92ef Build initial UI for Home and Profile screens
+b5d3721 Create EmptyState reusable widget for empty data display
+0c8f9c2 Create reusable CustomButton and CustomCard widgets
+60f4a11 Setup project architecture and folders
+36587bd Initialize Flutter UTS project
