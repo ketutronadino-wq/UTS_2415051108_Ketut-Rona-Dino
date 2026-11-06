@@ -18,7 +18,17 @@ class AdminProvider extends ChangeNotifier {
   String get actionError => _actionError;
   List<SavedRecipeModel> get items => _items;
 
-  String ownerLabel(SavedRecipeModel item) => _emails[item.userId] ?? 'user ${item.userId.substring(0, 8)}';
+    String ownerLabel(SavedRecipeModel item) {
+    final email = _emails[item.userId];
+    if (email != null && email.isNotEmpty) return email;
+    if (item.userId.isEmpty) return 'tanpa pemilik (data lama)';
+    
+    // Perbaikan: Pastikan panjang string lebih dari 8 sebelum dipotong
+    final shortId = item.userId.length > 8
+        ? item.userId.substring(0, 8)
+        : item.userId;
+    return 'user $shortId';
+  }
 
   Future<void> fetchAll() async {
     _isLoading = true;
