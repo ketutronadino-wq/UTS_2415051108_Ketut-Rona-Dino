@@ -1,3 +1,4 @@
+f0dc56c chore: add git log file
 01326be docs: add application screenshots rename
 14922f7 fix: update student identity and add internet permission
 2338d5d final: complete all features and fix bugs for submission
