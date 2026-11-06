@@ -26,4 +26,19 @@ class Validators {
     if (value == null || value.trim().isEmpty) return '$label wajib diisi';
     return null;
   }
+
+  static String? minLength(String? value, String label, int min) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return '$label wajib diisi';
+    if (text.length < min) return '$label minimal $min karakter';
+    return null;
+  }
+
+  static String? optionalUrl(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+    final uri = Uri.tryParse(text);
+    final valid = uri != null && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+    return valid ? null : 'URL harus diawali http:// atau https://';
+  }
 }
