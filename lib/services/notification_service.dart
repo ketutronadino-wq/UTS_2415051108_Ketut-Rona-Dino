@@ -44,6 +44,7 @@ class NotificationService {
   }
 
   Future<String?> getToken() async {
+    // ignore: deprecated_member_use
     final token = await _messaging.getToken();
     debugPrint('FCM Token: $token');
     return token;
@@ -77,6 +78,7 @@ class NotificationService {
     _foregroundSubscription = FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       onForeground(message.notification?.title ?? 'Notifikasi', message.notification?.body ?? '');
     });
+    // ignore: deprecated_member_use
     _tokenSubscription = _messaging.onTokenRefresh.listen(onTokenRefresh);
   }
 
