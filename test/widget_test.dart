@@ -1,35 +1,61 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:uts_recipebox/main.dart';
+import 'package:uts_recipebox/models/recipe_model.dart';
+import 'package:uts_recipebox/models/saved_recipe_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('RecipeModel.fromJson', () {
+    test('memetakan field dan menggabungkan bahan + takaran', () {
+      final recipe = RecipeModel.fromJson({
+        'idMeal': '52772',
+        'strMeal': 'Teriyaki Chicken Casserole',
+        'strCategory': 'Chicken',
+        'strArea': 'Japanese',
+        'strInstructions': 'Preheat oven to 350 F.',
+        'strMealThumb': 'https://example.com/teriyaki.jpg',
+        'strIngredient1': 'soy sauce',
+        'strMeasure1': '3/4 cup',
+        'strIngredient2': 'water',
+        'strMeasure2': '',
+        'strIngredient3': '',
+        'strMeasure3': '',
+      });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      expect(recipe.id, '52772');
+      expect(recipe.name, 'Teriyaki Chicken Casserole');
+      expect(recipe.category, 'Chicken');
+      expect(recipe.area, 'Japanese');
+      expect(recipe.thumbnail, 'https://example.com/teriyaki.jpg');
+      expect(recipe.ingredients, ['3/4 cup soy sauce', 'water']);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('memakai nilai default saat data null/kosong (null safety)', () {
+      final recipe = RecipeModel.fromJson({});
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      expect(recipe.id, '');
+      expect(recipe.name, 'No Name');
+      expect(recipe.category, 'Unknown');
+      expect(recipe.thumbnail, '');
+      expect(recipe.ingredients, isEmpty);
+    });
   });
 
-  testWidgets('Dummy test', (WidgetTester tester) async {
-    // Kosongkan saja, ini hanya agar error hilang
-    expect(1 + 1, 2);
+  group('SavedRecipeModel.fromJson', () {
+    test('memetakan field dari tabel saved_recipes', () {
+      final saved = SavedRecipeModel.fromJson({
+        'id': 7, // integer pun harus aman
+        'recipe_id': '52772',
+        'title': 'Teriyaki Chicken Casserole',
+        'category': 'Chicken',
+        'note': null,
+        'rating': 4,
+        'created_at': '2026-10-26T10:00:00Z',
+      });
+
+      expect(saved.id, '7');
+      expect(saved.recipeId, '52772');
+      expect(saved.note, '');
+      expect(saved.rating, 4);
+      expect(saved.createdAt, isNotNull);
+    });
   });
 }
