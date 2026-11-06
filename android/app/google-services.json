@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "577743528896",
+    "project_id": "aplikasi-resep-makanan-38966",
+    "storage_bucket": "aplikasi-resep-makanan-38966.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:577743528896:android:768960b9555daaf4ccde25",
+        "android_client_info": {
+          "package_name": "com.example.uts_recipebox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQdWmvqSGo4_dK17GE-ZhaY_5q3YYDHMo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
