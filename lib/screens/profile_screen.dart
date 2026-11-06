@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/custom_button.dart';
-import '../widgets/role_guard.dart';
 import 'admin_screen.dart';
 
 const String _nama = 'Ketut Rona Dino'; // GANTI DENGAN NAMA ANDA
@@ -14,9 +13,7 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   Future<void> _logout(BuildContext context) async {
-    final notifications = context.read<NotificationProvider>();
     final auth = context.read<AuthProvider>();
-    await notifications.stop();
     await auth.logout();
   }
 
