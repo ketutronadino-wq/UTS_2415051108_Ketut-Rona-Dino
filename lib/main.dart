@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'providers/admin_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/local_recipe_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/recipe_provider.dart';
 import 'repositories/notification_repository.dart';
@@ -25,6 +26,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => RecipeProvider()..fetchRecipes()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
+        ChangeNotifierProvider(create: (_) => LocalRecipeProvider()),
       ],
       child: const MyApp(),
     ),
