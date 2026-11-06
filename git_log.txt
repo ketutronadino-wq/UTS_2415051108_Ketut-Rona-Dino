@@ -1,3 +1,4 @@
+14922f7 fix: update student identity and add internet permission
 2338d5d final: complete all features and fix bugs for submission
 82d513e fix: resolve RangeError when parsing short user id in admin screen
 677bdea feat: integrate community recipes into profile and recipe list UI
