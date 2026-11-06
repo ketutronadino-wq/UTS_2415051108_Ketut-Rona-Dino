@@ -1,41 +1,60 @@
-# UTS Pemrograman Mobile - RecipeBox
+# RecipeBox
 
-## Deskripsi Project
-RecipeBox adalah aplikasi mobile berbasis Flutter yang dirancang untuk mencari resep makanan dari seluruh dunia. Aplikasi ini mengintegrasikan REST API untuk mengambil katalog resep dan menggunakan database backend untuk menyimpan resep favorit beserta catatan dan rating pribadi pengguna.
+Aplikasi mobile Flutter untuk mencari resep makanan dan menyimpan resep favorit
+beserta catatan memasak dan rating pribadi. Katalog resep diambil dari **REST API
+TheMealDB**, sedangkan data personal (favorit, catatan, rating) disimpan di
+**database Supabase**.
 
-## Identitas Mahasiswa
-*   **Nama:** Ketut Rona Dino
-*   **NIM:** 241051108
-*   **Kelas:** Pemrograman Berbasis Mobile
-*   **Tema Project:** Food & Recipe Explorer
+## Identitas
 
-## Fitur Utama
-1.  **Home Dashboard:** Menampilkan sambutan dan navigasi cepat ke daftar resep.
-2.  **Explore Recipes (REST API):** Menampilkan daftar resep dari API (TheMealDB) dengan layout responsif (List/Grid) dan fitur pencarian (Search).
-3.  **Recipe Detail:** Menampilkan detail instruksi memasak dan gambar dari API. Terdapat passing data antar screen.
-4.  **Saved Favorites (Database CRUD):** Menyimpan resep ke database Supabase. Pengguna dapat melihat daftar favorit, mengedit catatan (Update), dan menghapusnya (Delete dengan konfirmasi dialog).
-5.  **Profile:** Menampilkan informasi pengembang aplikasi.
+| | |
+|---|---|
+| Nama | Ketut Rona Dino |
+| NIM | 2415051108 |
+| Kelas | Pemrograman Mobile |
+| Mata kuliah | Pemrograman Mobile – Project UTS |
+| Repository | [https://github.com/ketutronadino-wq/UTS_2415051108_Ketut-Rona-Dino.git](https://github.com/ketutronadino-wq/UTS_2415051108_Ketut-Rona-Dino.git) |
 
-## Tech Stack & Arsitektur
-*   **Framework:** Flutter (Dart)
-*   **State Management:** Provider + ChangeNotifier
-*   **HTTP Client:** `http` package
-*   **Database Client:** `supabase_flutter`
-*   **Arsitektur:** 
-    `UI (Screens/Widgets)` → `State (Providers)` → `Repository` → `Service (API/Supabase)`
+## Fitur
 
-## REST API & Database
-*   **REST API:** [TheMealDB API](https://www.themealdb.com/api.php) (Endpoint: `search.php?s=a`)
-*   **Backend/Database:** [Supabase](https://supabase.com/)
-*   **Tabel Database:** `saved_recipes` (Field: `id`, `recipe_id`, `title`, `category`, `note`, `rating`, `created_at`)
+- Dashboard: ringkasan jumlah resep & favorit, pencarian cepat, kategori, rekomendasi resep
+- Daftar resep dari REST API (list di layar sempit, grid di layar lebar) dengan pull-to-refresh
+- Pencarian resep berdasarkan nama dan filter berdasarkan kategori
+- Detail resep: gambar, bahan, instruksi, layout 2 kolom di layar lebar
+- **Create** – simpan resep ke favorit lewat form (catatan + rating) dengan validasi
+- **Read** – daftar resep favorit dari database
+- **Update** – edit catatan dan rating
+- **Delete** – hapus favorit dengan dialog konfirmasi
+- Loading, error (dengan tombol "Coba Lagi"), dan empty state di setiap daftar
+- SnackBar / AlertDialog sebagai umpan balik operasi penting
+- Navigasi adaptif: NavigationBar (compact) dan NavigationRail (wide)
 
-## Struktur Folder
-```text
-lib/
- ┣ models/       # Model data (RecipeModel, SavedRecipeModel)
- ┣ services/     # Koneksi ke API dan Supabase
- ┣ repositories/ # Jembatan antara Provider dan Service
- ┣ providers/    # State Management (RecipeProvider)
- ┣ screens/      # Halaman UI (Home, List, Detail, Favorit, Edit, Profil)
- ┣ widgets/      # Komponen UI yang dapat digunakan ulang (CustomCard, EmptyState, dll)
- ┗ main.dart     # Entry point aplikasi
+## Tech Stack
+
+- Flutter & Dart (Material 3)
+- Provider + ChangeNotifier (state management)
+- `http` (REST API), `supabase_flutter` (database)
+
+## REST API
+
+[TheMealDB](https://www.themealdb.com/api.php) – `GET https://www.themealdb.com/api/json/v1/1/search.php?s=a`
+Response JSON dikonversi menjadi `RecipeModel`.
+
+## Backend / Database
+
+Supabase (PostgreSQL), tabel `saved_recipes`:
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| id | uuid (PK) | primary key |
+| recipe_id | text | id resep dari TheMealDB |
+| title | text | nama resep |
+| category | text | kategori resep |
+| note | text | catatan pengguna |
+| rating | int | 0–5 |
+| created_at | timestamptz | waktu dibuat |
+
+Skrip pembuatan tabel dan RLS ada di [`supabase_setup.sql`](supabase_setup.sql).
+Aplikasi hanya memakai **anon key**; `service_role` key tidak pernah dipakai maupun di-commit.
+
+## Arsitektur
