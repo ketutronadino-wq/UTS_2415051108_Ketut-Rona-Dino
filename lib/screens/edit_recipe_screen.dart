@@ -3,10 +3,11 @@ import 'package:provider/provider.dart';
 import '../models/saved_recipe_model.dart';
 import '../providers/recipe_provider.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/rating_input.dart';
 
+/// Screen UPDATE: ubah catatan dan rating resep favorit.
 class EditRecipeScreen extends StatefulWidget {
-  // PERHATIKAN BARIS INI: Namanya harus savedRecipe
-  final SavedRecipeModel savedRecipe; 
+  final SavedRecipeModel savedRecipe;
 
   const EditRecipeScreen({super.key, required this.savedRecipe});
 
@@ -16,15 +17,15 @@ class EditRecipeScreen extends StatefulWidget {
 
 class _EditRecipeScreenState extends State<EditRecipeScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _noteController;
-  late int _currentRating;
+  late final TextEditingController _noteController;
+  late int _rating;
+  bool _showRatingError = false;
 
   @override
   void initState() {
     super.initState();
-    // Menggunakan widget.savedRecipe
     _noteController = TextEditingController(text: widget.savedRecipe.note);
-    _currentRating = widget.savedRecipe.rating;
+    _rating = widget.savedRecipe.rating;
   }
 
   @override
@@ -33,81 +34,100 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
     super.dispose();
   }
 
+  Future<void> _submit() async {
+    final isFormValid = _formKey.currentState!.validate();
+    if (_rating == 0) setState(() => _showRatingError = true);
+    if (!isFormValid || _rating == 0) return;
+
+    final provider = context.read<RecipeProvider>();
+    final success = await provider.updateSavedRecipe(
+      id: widget.savedRecipe.id,
+      note: _noteController.text,
+      rating: _rating,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? 'Catatan berhasil diperbarui!'
+            : 'Gagal memperbarui: ${provider.actionError}'),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
+    if (success) Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isSaving = context.watch<RecipeProvider>().isSaving;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Catatan Resep')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Judul: ${widget.savedRecipe.title}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              
-              // Form Catatan dengan Validation
-              TextFormField(
-                controller: _noteController,
-                decoration: const InputDecoration(
-                  labelText: 'Catatan Memasak',
-                  border: OutlineInputBorder(),
-                  hintText: 'Contoh: Tambahkan sedikit garam',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Catatan tidak boleh kosong!';
-                  }
-                  return null;
-                },
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          // Scrollable agar tidak RenderFlex overflow saat keyboard muncul
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.savedRecipe.title,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+
+                  TextFormField(
+                    controller: _noteController,
+                    maxLines: 3,
+                    maxLength: 200,
+                    decoration: const InputDecoration(
+                      labelText: 'Catatan Memasak',
+                      border: OutlineInputBorder(),
+                      hintText: 'Contoh: Tambahkan sedikit garam',
+                    ),
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) return 'Catatan tidak boleh kosong!';
+                      if (text.length < 3) return 'Catatan minimal 3 karakter.';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+
+                  const Text('Rating:'),
+                  RatingInput(
+                    value: _rating,
+                    onChanged: (value) => setState(() {
+                      _rating = value;
+                      _showRatingError = false;
+                    }),
+                  ),
+                  if (_showRatingError)
+                    Text(
+                      'Pilih rating minimal 1 bintang.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+
+                  CustomButton(
+                    text: 'Simpan Perubahan',
+                    icon: Icons.save,
+                    isLoading: isSaving,
+                    onPressed: _submit,
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-
-              // Input Rating
-              const Text('Rating:'),
-              Slider(
-                value: _currentRating.toDouble(),
-                min: 0,
-                max: 5,
-                divisions: 5,
-                label: _currentRating.toString(),
-                onChanged: (value) {
-                  setState(() {
-                    _currentRating = value.toInt();
-                  });
-                },
-              ),
-              Text('$_currentRating Bintang', style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 30),
-
-              // Tombol Simpan (Update)
-              CustomButton(
-                text: 'Simpan Perubahan',
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    final success = await context.read<RecipeProvider>().updateRecipeInDb(
-                      widget.savedRecipe.id,
-                      _noteController.text,
-                      _currentRating,
-                    );
-
-                    if (!context.mounted) return;
-                    
-                    if (success) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Catatan berhasil diperbarui!'), backgroundColor: Colors.green),
-                      );
-                      Navigator.pop(context); 
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Gagal memperbarui catatan.'), backgroundColor: Colors.red),
-                      );
-                    }
-                  }
-                },
-              )
-            ],
+            ),
           ),
         ),
       ),
