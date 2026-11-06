@@ -1,31 +1,39 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/recipe_model.dart';
 
 class ApiService {
-  // Endpoint untuk mencari makanan berdasarkan nama (menggunakan 'a' agar semua huruf a muncul, atau 's' untuk search)
-  final String baseUrl = 'https://www.themealdb.com/api/json/v1/1/search.php?s=';
+  // Endpoint pencarian TheMealDB. Query s=a mengembalikan banyak resep.
+  static const String _endpoint =
+      'https://www.themealdb.com/api/json/v1/1/search.php';
 
   Future<List<RecipeModel>> fetchRecipes() async {
     try {
-      // Kita ambil data dengan query 's=' (kosong) untuk mengambil beberapa data default, 
-      // atau kita bisa pakai huruf 'a' agar datanya banyak.
-      final response = await http.get(Uri.parse('${baseUrl}a'));
+      final response = await http
+          .get(Uri.parse('$_endpoint?s=a'))
+          .timeout(const Duration(seconds: 15));
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        
-        if (data['meals'] == null) {
-          return []; // Return list kosong jika tidak ada data
-        }
-
-        List<dynamic> meals = data['meals'];
-        return meals.map((json) => RecipeModel.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load recipes (Status: ${response.statusCode})');
+      if (response.statusCode != 200) {
+        throw Exception('Gagal memuat resep (kode ${response.statusCode}).');
       }
-    } catch (e) {
-      throw Exception('Network error: $e');
+
+      final decoded = json.decode(response.body) as Map<String, dynamic>;
+      final meals = decoded['meals'];
+      if (meals == null) return []; // API mengembalikan null jika kosong
+
+      return (meals as List)
+          .map((item) => RecipeModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } on TimeoutException {
+      throw Exception('Koneksi terlalu lama (timeout). Coba lagi.');
+    } on SocketException {
+      throw Exception('Tidak ada koneksi internet.');
+    } on http.ClientException {
+      throw Exception('Tidak ada koneksi internet.');
+    } on FormatException {
+      throw Exception('Format data dari server tidak valid.');
     }
   }
 }
