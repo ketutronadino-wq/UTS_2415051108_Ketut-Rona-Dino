@@ -8,10 +8,9 @@ import '../widgets/role_guard.dart';
 import 'admin_screen.dart';
 import 'local_recipe_form_screen.dart';
 
-// TODO: GANTI dengan identitas kamu sebelum dikumpulkan
-const String _nama = 'Nama Lengkap Kamu';
-const String _nim = 'NIM Kamu';
-const String _kelas = 'Kelas Kamu';
+const String _nama = 'Ketut Rona Dino';
+const String _nim = '2415051108';
+const String _kelas = 'Pendidikan Teknik Informatika 5A';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
