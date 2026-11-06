@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/local_recipe_model.dart';
 import '../models/recipe_model.dart';
+import '../providers/auth_provider.dart';
+import '../providers/local_recipe_provider.dart';
 import '../providers/recipe_provider.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
 import '../widgets/recipe_image.dart';
+import '../widgets/role_guard.dart';
+import 'local_recipe_form_screen.dart';
 import 'recipe_detail_screen.dart';
 
 class RecipeListScreen extends StatefulWidget {
@@ -41,9 +46,23 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     super.dispose();
   }
 
+  /// Gabungan kategori resep API + resep komunitas (tanpa duplikat).
+  List<String> _mergeCategories(List<String> api, List<String> local) {
+    final seen = <String>{};
+    final result = <String>[];
+    for (final category in [...api, ...local]) {
+      if (seen.add(category.toLowerCase())) result.add(category);
+    }
+    result.sort();
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<RecipeProvider>();
+    final local = context.watch<LocalRecipeProvider>();
+    final auth = context.watch<AuthProvider>();
+    final categories = _mergeCategories(provider.categories, local.categories);
 
     return Scaffold(
       appBar: AppBar(
@@ -76,16 +95,26 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           ),
         ),
       ),
+      // Tombol tambah resep hanya untuk admin
+      floatingActionButton: RoleGuard(
+        role: auth.role,
+        allowed: const ['admin'],
+        child: FloatingActionButton.extended(
+          onPressed: () => _openForm(),
+          icon: const Icon(Icons.add),
+          label: const Text('Resep Baru'),
+        ),
+      ),
       body: Column(
         children: [
-          if (provider.categories.isNotEmpty) _buildCategoryFilter(provider),
-          Expanded(child: _buildContent(provider)),
+          if (categories.isNotEmpty) _buildCategoryFilter(provider, categories),
+          Expanded(child: _buildContent(provider, local, auth)),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryFilter(RecipeProvider provider) {
+  Widget _buildCategoryFilter(RecipeProvider provider, List<String> categories) {
     return SizedBox(
       height: 56,
       child: ListView(
@@ -100,7 +129,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
               onSelected: (_) => provider.setCategory(null),
             ),
           ),
-          ...provider.categories.map(
+          ...categories.map(
             (category) => Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ChoiceChip(
@@ -115,7 +144,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     );
   }
 
-  Widget _buildContent(RecipeProvider provider) {
+  Widget _buildContent(
+    RecipeProvider provider,
+    LocalRecipeProvider local,
+    AuthProvider auth,
+  ) {
     // 1. Loading state
     if (provider.isLoading && provider.recipes.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -125,13 +158,22 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     if (provider.apiError.isNotEmpty && provider.recipes.isEmpty) {
       return ErrorState(
         message: provider.apiError,
-        onRetry: () => provider.fetchRecipes(force: true),
+        onRetry: () {
+          provider.fetchRecipes(force: true);
+          local.fetchAll();
+        },
       );
     }
 
+    final apiRecipes = provider.filteredRecipes;
+    final localRecipes = local.filtered(
+      query: provider.searchQuery,
+      category: provider.selectedCategory,
+    );
+    final showLocalError = local.error.isNotEmpty && local.recipes.isEmpty;
+
     // 3. Empty state
-    final recipes = provider.filteredRecipes;
-    if (recipes.isEmpty) {
+    if (apiRecipes.isEmpty && localRecipes.isEmpty && !showLocalError) {
       return EmptyState(
         message: provider.hasActiveFilter
             ? 'Resep tidak ditemukan dengan filter saat ini.'
@@ -142,38 +184,116 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       );
     }
 
-    // 4. Data (responsive: compact = list, wide = grid)
+    final showAdminHint = auth.isAdmin &&
+        local.recipes.isEmpty &&
+        !local.isLoading &&
+        local.error.isEmpty &&
+        !provider.hasActiveFilter;
+
+    // 4. Data: dua bagian (Komunitas di atas, Publik di bawah),
+    //    responsif: compact = list, wide = grid
     return RefreshIndicator(
-      onRefresh: () => _refresh(provider),
+      onRefresh: () => _refresh(provider, local),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth >= 600) {
-            return GridView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 450,
-                mainAxisExtent: 92,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: recipes.length,
-              itemBuilder: (context, index) =>
-                  _buildCard(recipes[index], inGrid: true),
-            );
-          }
+          final isWide = constraints.maxWidth >= 600;
 
-          return ListView.builder(
+          return CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 16),
-            itemCount: recipes.length,
-            itemBuilder: (context, index) => _buildCard(recipes[index]),
+            slivers: [
+              if (showLocalError)
+                SliverToBoxAdapter(child: _buildLocalError(local)),
+              if (showAdminHint)
+                const SliverToBoxAdapter(child: _AdminHint()),
+              if (localRecipes.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _SectionHeader(
+                    icon: Icons.groups,
+                    title: 'Resep Komunitas',
+                    count: localRecipes.length,
+                  ),
+                ),
+                _recipeSliver(
+                  localRecipes.length,
+                  isWide,
+                  (index) => _buildLocalCard(
+                    localRecipes[index],
+                    isAdmin: auth.isAdmin,
+                    inGrid: isWide,
+                  ),
+                ),
+              ],
+              if (apiRecipes.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _SectionHeader(
+                    icon: Icons.public,
+                    title: 'Resep Publik (TheMealDB)',
+                    count: apiRecipes.length,
+                  ),
+                ),
+                _recipeSliver(
+                  apiRecipes.length,
+                  isWide,
+                  (index) => _buildCard(apiRecipes[index], inGrid: isWide),
+                ),
+              ],
+              // ruang agar item terakhir tidak tertutup tombol "Resep Baru"
+              const SliverToBoxAdapter(child: SizedBox(height: 88)),
+            ],
           );
         },
       ),
     );
   }
 
+  Widget _recipeSliver(
+    int count,
+    bool isWide,
+    Widget Function(int index) itemBuilder,
+  ) {
+    if (isWide) {
+      return SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 450,
+            mainAxisExtent: 92,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => itemBuilder(index),
+            childCount: count,
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) => itemBuilder(index),
+        childCount: count,
+      ),
+    );
+  }
+
+  Widget _buildLocalError(LocalRecipeProvider local) {
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: ListTile(
+        leading: const Icon(Icons.warning_amber, color: Colors.red),
+        title: const Text('Resep komunitas gagal dimuat'),
+        subtitle: Text(local.error),
+        trailing: TextButton(
+          onPressed: local.fetchAll,
+          child: const Text('Coba lagi'),
+        ),
+      ),
+    );
+  }
+
+  // Kartu resep publik (API)
   Widget _buildCard(RecipeModel recipe, {bool inGrid = false}) {
     return CustomCard(
       title: recipe.name,
@@ -186,8 +306,48 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     );
   }
 
-  Future<void> _refresh(RecipeProvider provider) async {
-    await provider.fetchRecipes(force: true);
+  // Kartu resep komunitas: tombol edit/hapus hanya untuk admin
+  Widget _buildLocalCard(
+    LocalRecipeModel recipe, {
+    required bool isAdmin,
+    bool inGrid = false,
+  }) {
+    return CustomCard(
+      title: recipe.title,
+      subtitle: '${recipe.category} • Komunitas',
+      margin: inGrid
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: RecipeImage(url: recipe.thumbnail, width: 50, height: 50),
+      trailing: isAdmin
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Edit',
+                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  onPressed: () => _openForm(recipe),
+                ),
+                IconButton(
+                  tooltip: 'Hapus',
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _confirmDelete(recipe),
+                ),
+              ],
+            )
+          : null,
+      onTap: () => _goToDetail(recipe.toRecipeModel()),
+    );
+  }
+
+  Future<void> _refresh(
+    RecipeProvider provider,
+    LocalRecipeProvider local,
+  ) async {
+    await Future.wait([
+      provider.fetchRecipes(force: true),
+      local.fetchAll(),
+    ]);
     if (!mounted || provider.apiError.isEmpty) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(provider.apiError), backgroundColor: Colors.red),
@@ -198,6 +358,102 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => RecipeDetailScreen(recipe: recipe)),
+    );
+  }
+
+  void _openForm([LocalRecipeModel? recipe]) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocalRecipeFormScreen(recipe: recipe),
+      ),
+    );
+  }
+
+  // DELETE dengan dialog konfirmasi
+  void _confirmDelete(LocalRecipeModel recipe) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Hapus Resep?'),
+          content: Text(
+              'Hapus "${recipe.title}" dari Resep Komunitas? Tindakan ini tidak dapat dibatalkan.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Batal'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                final local = context.read<LocalRecipeProvider>();
+                final success = await local.delete(recipe.id);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success
+                        ? 'Resep berhasil dihapus.'
+                        : 'Gagal menghapus: ${local.actionError}'),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+              },
+              child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final int count;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.count,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.orange),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Text('$count', style: const TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminHint extends StatelessWidget {
+  const _AdminHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Card(
+      margin: EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: ListTile(
+        leading: Icon(Icons.info_outline, color: Colors.blue),
+        title: Text('Belum ada resep komunitas'),
+        subtitle: Text('Tekan tombol "Resep Baru" untuk menambahkan resep pertama.'),
+      ),
     );
   }
 }
